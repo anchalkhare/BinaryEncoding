@@ -4,36 +4,54 @@
 #' @return dataframe with binary columns
 #' @export
 #'
+#'Converts factor/character column with n class to binary columns as shown below
+#'
+#'Input data
+#'   Col1
+#'    A
+#'    B
+#'    C
+#'    D
+#'    
+#'Output data
+#'   Col1  Col2
+#'    0     0       <- A
+#'    0     1       <- B
+#'    1     0       <- C  
+#'    1     1       <- D 
+#'    
+#'    
 
 
-Binary_encoding<-function(data1){
 
-  #require(dplyr)
-  #require(binaryLogic)
 
-  if(sum(is.na(data1))>0){
+Binary_encoding<-function(inputData){
+  if(sum(is.na(inputData))>0){
     print("Impute missing values in data and then use this function")
-    return(data1)
+    return(inputData)
   }else{
-    fa_cols<- colnames(data1)[sapply(data1,is.factor)]
-    fac_cols<- c(fa_cols,colnames(data1)[sapply(data1,is.character)])
-    rm(fa_cols)
-    for (i in 1:length(fac_cols)){
-      unq<- sort(as.character(unique(unlist(data1[fac_cols[i]]))))
-      values<- 0:(length(unq)-1)
-      df<- unique(data1[fac_cols[i]])
-      if (log(length(unq),2) %%1==0){
-        narg=(as.integer(log(length(unq),2)))
-      }else{
-        narg=(as.integer(log(length(unq),2)+1))
+    tryCatch({
+      fa_cols<- colnames(inputData)[sapply(inputData,is.factor)]
+      fac_cols<- c(fa_cols,colnames(inputData)[sapply(inputData,is.character)])
+      rm(fa_cols)
+      for (i in 1:length(fac_cols)){
+        unq<- sort(as.character(unique(unlist(inputData[fac_cols[i]]))))
+        values<- 0:(length(unq)-1)
+        df<- unique(inputData[fac_cols[i]])
+        if (log(length(unq),2) %%1==0){
+          narg=(as.integer(log(length(unq),2)))
+        }else{
+          narg=(as.integer(log(length(unq),2)+1))
+        }
+        m<-data.frame(matrix(unlist(as.binary(values, n=narg)),nrow=length(unq),byrow=T))
+        colnames(m)<- paste(fac_cols[i],1:narg,sep="")
+        m <- data.frame(lapply(m, as.numeric))
+        df<- cbind(df,m)
+        inputData<- left_join(inputData,df)
       }
-      m<-data.frame(matrix(unlist(as.binary(values, n=narg)),nrow=length(unq),byrow=T))
-      colnames(m)<- paste(fac_cols[i],1:narg,sep="")
-      m <- data.frame(lapply(m, as.numeric))
-      df<- cbind(df,m)
-      data1<- left_join(data1,df)
-    }
-    data1<- data1[,!colnames(data1) %in% fac_cols]
-    return(data1)
-  }
+      inputData<- inputData[,!colnames(inputData) %in% fac_cols]
+      return(inputData)}
+      ,error = function(e){print("Load dependencies dplyr and binaryLogic libraries before running this function as mentioned in documentation")
+        return(inputData)}
+    )}
 }
